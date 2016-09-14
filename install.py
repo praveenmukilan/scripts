@@ -3,9 +3,10 @@
 import subprocess
 import argparse
 import os
+import sys
 
 HOME=os.getenv("HOME")
-APK_FOLDER=HOME+"/Downloads/Debug"
+APK_FOLDER=HOME+"/Downloads/Debug/"
 BUILD_OUTPUT_FOLDER=HOME+"/HB-Droid-Bee/HBDroidBee/build/outputs/apk/"
 env_d={"staging":"Staging","development":"Development","production":"Production"}
 package_d={"staging":"com.honestbee.bee.staging","development":"com.honestbee.bee.development","production":"com.honestbee.bee"}
@@ -86,8 +87,8 @@ class InstallDebug(object):
     def installApk(self,udid,version):            
 
         #install apk
-        print "installing apk..."+self.apk
-        command = "adb -s "+udid+ " install ~/Downloads/Debug/"+self.apk
+        print "installing apk..."
+        command = "adb -s "+udid+ " install "+APK_FOLDER+self.apk
         print "***** : "+command
         output = subprocess.check_output(command, shell=True)
         #print output
@@ -98,8 +99,9 @@ class InstallDebug(object):
     def isApkBuilt(self,version,path):
         try:
             os.chdir(path)
-            print os.getcwd()
-            subprocess.check_output("ls "+self.apk,shell=True)
+            #print os.getcwd()
+            output=subprocess.check_output("ls "+path+self.apk,shell=True)
+            print output
             return True
         except:
             return False
@@ -107,29 +109,41 @@ class InstallDebug(object):
 
     
 def main():
-    print "main method"
+#    print "main method"
     parser = argparse.ArgumentParser()
-    parser.add_argument('-udid', dest='udid', help='UDID of the device, run `adb devices` to get the udid')
+    parser.add_argument('-c', dest='command', help='supported commands `install`, `build`, `uninstall` ')
+    parser.add_argument('-udid', dest='udid', help='UDID of the device, if not specified, automatically runs `adb devices` to get the udid')
     parser.add_argument('-v', dest='version', help='the version of the apk to install. eg, 3.1.4.7')
-    parser.add_argument('-env', dest='env', help='the environment to build * staging * development * production')
+    parser.add_argument('-env', dest='env', help='the environment to build `staging`, `development` , `production')
     args = parser.parse_args()
     print args
+
     version=args.version
+    command=args.command
     #env if given, else defaults to Staging
     env=args.env if bool(args.env) else "staging"
     APK="HBDroidBee-"
     APK=APK+env+"-v"+version+".apk"
-    print "expected apk :"+APK
+    
     install=InstallDebug(version,env,APK)
     isBuilt = install.isApkBuilt(version,APK_FOLDER)
-    print "isBuilt? "
-    print isBuilt
+#    print "isBuilt? "
+#    print isBuilt
+    udid=udid.udid if bool(args.udid) else install.getUdid()
 
-    udid=results.udid if bool(args.udid) else install.getUdid()
-    if not isBuilt:
+    if command == 'build' :
+        print "expected apk :"+APK
         install.buildApk(version)
-    install.uninstallApk(udid)
-    install.installApk(udid,version)
+    elif command == 'install' :
+        install.uninstallApk(udid)
+        install.installApk(udid,version)
+    elif command == 'uninstall' :
+        install.uninstallApk(udid)
+    else :
+        if not isBuilt:
+            install.buildApk(version) 
+        install.uninstallApk(udid)
+        install.installApk(udid,version)
     
     
 if __name__ == '__main__': 
